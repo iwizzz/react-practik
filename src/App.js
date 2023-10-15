@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './index.scss';
+import TagsList from "./TagsList";
 
 function Collection({ name, images }) {
   return (
@@ -15,35 +16,66 @@ function Collection({ name, images }) {
   );
 }
 
+
+
 function App() {
+  const [photosColection, setPhotosColection] = useState([]);
+  const [tagsColection, setTagsColection] = useState([]);
+  const [activeTag, setActiveTag] = useState(0);
+  const [page, setPage] = useState(1);
+  const [searchValue, setSearchValue] = useState("");
+
+
+//Сделать обнуление страницы при выборе другого тега.
+  React.useEffect(() => {
+    fetch(`https://652278fbf43b1793841488d0.mockapi.io/photos-colecton?page=${page}&limit=12${activeTag === 0 ? "" : `&category=${activeTag}`}`)
+      .then(res => res.json())
+      .then(json => setPhotosColection(json))
+      .catch(err => alert("Ошибка в получении данных с сервера"));
+  }, [page, activeTag])
+
+  React.useEffect(() => {
+    fetch("https://652278fbf43b1793841488d0.mockapi.io/tegs")
+      .then(res => res.json())
+      .then(json => setTagsColection(json))
+      .catch(err => alert("Ошибка в получении данных с сервера"));
+  }, [])
+
+
+
+  const searchedPhotos = React.useMemo(() => {
+    return searchValue === "" ?
+    photosColection
+    :
+    [...photosColection].filter((item) => item.name.toLowerCase().includes(searchValue.toLowerCase()))
+  }, [searchValue, photosColection])
+
+
   return (
     <div className="App">
       <h1>Моя коллекция фотографий</h1>
       <div className="top">
-        <ul className="tags">
-          <li className="active">Все</li>
-          <li>Горы</li>
-          <li>Море</li>
-          <li>Архитектура</li>
-          <li>Города</li>
-        </ul>
-        <input className="search-input" placeholder="Поиск по названию" />
+        <TagsList tagsList={tagsColection} activeTag={activeTag} setActiveTag={setActiveTag}/>
+        <input className="search-input" placeholder="Поиск по названию" value={searchValue} onChange={(event) => setSearchValue(event.currentTarget.value)}/>
       </div>
+      {photosColection.length === 0 ? 
+      <h2>Идёт загрузка...</h2>
+      :
       <div className="content">
-        <Collection
-          name="Путешествие по миру"
-          images={[
-            'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTN8fGNpdHl8ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60',
-            'https://images.unsplash.com/photo-1560840067-ddcaeb7831d2?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8NDB8fGNpdHl8ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60',
-            'https://images.unsplash.com/photo-1531219572328-a0171b4448a3?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mzl8fGNpdHl8ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60',
-            'https://images.unsplash.com/photo-1573108724029-4c46571d6490?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MzR8fGNpdHl8ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60',
-          ]}
-        />
+        {searchedPhotos.map((item, index) => (
+          <Collection key={index} name={item.name} images={item.photos}/>
+        ))}
+        
       </div>
+      }
       <ul className="pagination">
-        <li>1</li>
-        <li className="active">2</li>
-        <li>3</li>
+        <li onClick={() => page > 1 ? setPage(page - 1) : 0}>{"<"}</li>
+        {photosColection.length === 0 ? 
+        ""
+        :
+        <li onClick={() => setPage(page + 1)}>{">"}</li>
+          }
+        
       </ul>
     </div>
   );
